@@ -44,6 +44,30 @@ curl -X PURGE http://localhost:8080/api/data  # purges varnish1 only
 
 Result: varnish1 has fresh content, varnish2 has stale content.
 
+## Distributed Cache Purging Solution
+
+**Purge all Varnish instances with single endpoint:**
+```bash
+curl -X POST http://localhost:8082/purge-all/api/data
+```
+
+**Response:**
+```json
+{
+  "message": "Purged api/data from all Varnish instances",
+  "results": [
+    {"instance": "varnish1:80", "status": 200, "success": true},
+    {"instance": "varnish2:80", "status": 200, "success": true}
+  ]
+}
+```
+
+**How it works:**
+- Express app receives `/purge-all` request
+- Sends PURGE to both varnish1 and varnish2 directly
+- Returns status for each instance
+- Solves cache inconsistency problem
+
 ## AWS Equivalent
 
 This mirrors: **ALB → CloudFront instances → ECS tasks**
