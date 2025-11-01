@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const app = express();
 const PORT = 3000;
 const SERVER_ID = process.env.SERVER_ID || 'unknown';
@@ -28,6 +29,61 @@ app.get('/api/data', (req, res) => {
   res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
   res.set('Vary', 'Accept-Encoding'); // Cache varies by compression
   res.json(apiData); // Returns same data each time
+});
+
+// Purge all Varnish instances endpoint
+app.post('/purge-all/:path(*)', (req, res) => {
+  const path = req.params.path;
+  const varnishInstances = [
+    { host: 'varnish1', port: 80 },
+    { host: 'varnish2', port: 80 }
+  ];
+  
+  const results = [];
+  let completed = 0;
+  
+  varnishInstances.forEach(instance => {
+    const options = {
+      hostname: instance.host,
+      port: instance.port,
+      path: `/${path}`,
+      method: 'PURGE'
+    };
+    
+    const req = http.request(options, (response) => {
+      results.push({
+        instance: `${instance.host}:${instance.port}`,
+        status: response.statusCode,
+        success: response.statusCode === 200
+      });
+      
+      completed++;
+      if (completed === varnishInstances.length) {
+        res.json({
+          message: `Purged ${path} from all Varnish instances`,
+          results
+        });
+      }
+    });
+    
+    req.on('error', (error) => {
+      results.push({
+        instance: `${instance.host}:${instance.port}`,
+        error: error.message,
+        success: false
+      });
+      
+      completed++;
+      if (completed === varnishInstances.length) {
+        res.json({
+          message: `Purged ${path} from all Varnish instances`,
+          results
+        });
+      }
+    });
+    
+    req.end();
+  });
 });
 
 // Dynamic content - no caching strategy

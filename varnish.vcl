@@ -26,14 +26,15 @@ sub vcl_init {
     lb.add_backend(app3);
 }
 
-# Use load balancer for backend selection
+# Handle incoming requests
 sub vcl_recv {
-    set req.backend_hint = lb.backend();
-    
-    # Handle PURGE requests
+    # Handle PURGE requests first
     if (req.method == "PURGE") {
         return (purge);
     }
+    
+    # Use load balancer for normal requests
+    set req.backend_hint = lb.backend();
 }
 
 # Add cache status header so we can see hits/misses
@@ -43,4 +44,7 @@ sub vcl_deliver {
     } else {
         set resp.http.X-Cache = "MISS";
     }
+    
+    # Add debug info
+    set resp.http.X-Cache-Hits = obj.hits;
 }
