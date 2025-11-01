@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const PORT = 3000;
+const SERVER_ID = process.env.SERVER_ID || 'unknown';
 
 // Static assets - aggressive caching strategy
 // Use case: CSS, JS, images with versioned filenames
@@ -19,7 +20,8 @@ app.get('/static/*', (req, res) => {
 const apiData = {
   timestamp: new Date().toISOString(),
   data: 'Cached API response',
-  version: '1.0'
+  version: '1.0',
+  server: SERVER_ID
 };
 
 app.get('/api/data', (req, res) => {

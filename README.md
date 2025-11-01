@@ -1,6 +1,6 @@
 # Web Application Caching Workshop
 
-## Executive Summary
+## Overview
 
 This workshop explores modern web application caching strategies through hands-on implementation with CloudFront, HAProxy, Varnish, and Node.js Express. We'll build a practical understanding of cache layers, invalidation strategies, and performance optimization patterns used in production systems.
 
