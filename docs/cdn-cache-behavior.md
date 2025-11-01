@@ -1,5 +1,16 @@
 # CDN Cache Behavior Analysis
 
+## Universal Cache Instructions
+
+**Key Concept:** `Cache-Control: public, max-age=300` is a **universal instruction** from your server to the entire caching ecosystem:
+
+✅ **Browser**: "Keep this for 5 minutes"  
+✅ **CDN (CloudFront)**: "Store at edge locations for 5 minutes"  
+✅ **Proxy (Varnish)**: "Cache this for 5 minutes"  
+✅ **Any cache layer**: "This content is cacheable for 5 minutes"
+
+Your server sets **one policy** that every cache in the request path respects automatically.
+
 ## Scenario: Geographic Caching
 
 **Setup:**
