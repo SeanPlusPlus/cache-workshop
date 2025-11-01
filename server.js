@@ -16,13 +16,16 @@ app.get('/static/*', (req, res) => {
 // Use case: semi-dynamic content like user profiles, product catalogs
 // Cache-Control: public (CDN cacheable), max-age=300 (5 minutes)
 // Best for: data that changes infrequently but needs reasonable freshness
+const apiData = {
+  timestamp: new Date().toISOString(),
+  data: 'Cached API response',
+  version: '1.0'
+};
+
 app.get('/api/data', (req, res) => {
   res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
   res.set('Vary', 'Accept-Encoding'); // Cache varies by compression
-  res.json({ 
-    timestamp: new Date().toISOString(),
-    data: 'Fresh API response'
-  });
+  res.json(apiData); // Returns same data each time
 });
 
 // Dynamic content - no caching strategy
