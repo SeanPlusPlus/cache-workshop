@@ -55,3 +55,8 @@ services:
     depends_on:
       - varnish1
       - varnish2
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

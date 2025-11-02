@@ -11,6 +11,7 @@
 2. [Varnish Load Balancing](./varnish-load-balancing.md) - Round-robin across multiple backends
 3. [Varnish Cache Purge](./varnish-cache-purge.md) - Manual cache invalidation
 4. [HAProxy Load Balancing](./haproxy-load-balancing.md) - Load balancing across Varnish instances
+5. [Redis Application Cache](./redis-application-cache.md) - Application-level caching with external APIs
 *Coming next: CloudFront setup guides*
 
 ### Reference

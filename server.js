@@ -1,8 +1,24 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const redis = require('redis');
 const app = express();
 const PORT = 3000;
 const SERVER_ID = process.env.SERVER_ID || 'unknown';
+
+// Redis client setup
+const redisClient = redis.createClient({
+  socket: {
+    host: 'redis',
+    port: 6379
+  }
+});
+
+redisClient.on('error', (err) => {
+  console.log('Redis Client Error', err);
+});
+
+redisClient.connect();
 
 // Static assets - aggressive caching strategy
 // Use case: CSS, JS, images with versioned filenames
@@ -29,6 +45,132 @@ app.get('/api/data', (req, res) => {
   res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
   res.set('Vary', 'Accept-Encoding'); // Cache varies by compression
   res.json(apiData); // Returns same data each time
+});
+
+// Widgets endpoint with Redis caching
+app.get('/api/widgets', async (req, res) => {
+  try {
+    // Check Redis cache first
+    const cached = await redisClient.get('widgets');
+    if (cached) {
+      return res.json({
+        ...JSON.parse(cached),
+        source: 'redis-cache',
+        server: SERVER_ID
+      });
+    }
+    
+    // Cache miss - fetch from external API
+    const widgets = await new Promise((resolve, reject) => {
+      https.get('https://simplejson.vercel.app/api/zh81AnsP', (response) => {
+        let data = '';
+        response.on('data', (chunk) => data += chunk);
+        response.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }).on('error', reject);
+    });
+    
+    // Cache for 5 minutes
+    await redisClient.setEx('widgets', 300, JSON.stringify(widgets));
+    
+    res.json({
+      ...widgets,
+      source: 'external-api',
+      server: SERVER_ID
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Purge Redis cache endpoint
+app.post('/purge-redis/:key', async (req, res) => {
+  try {
+    const key = req.params.key;
+    const result = await redisClient.del(key);
+    
+    res.json({
+      message: `Purged Redis key: ${key}`,
+      keysDeleted: result,
+      server: SERVER_ID
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Purge ALL caches (Varnish + Redis) endpoint
+app.post('/purge-everything/:path(*)', async (req, res) => {
+  const path = req.params.path;
+  const results = {
+    varnish: [],
+    redis: null
+  };
+  
+  try {
+    // Purge Varnish instances
+    const varnishInstances = [
+      { host: 'varnish1', port: 80 },
+      { host: 'varnish2', port: 80 }
+    ];
+    
+    let varnishCompleted = 0;
+    
+    const varnishPromises = varnishInstances.map(instance => {
+      return new Promise((resolve) => {
+        const options = {
+          hostname: instance.host,
+          port: instance.port,
+          path: `/${path}`,
+          method: 'PURGE'
+        };
+        
+        const req = http.request(options, (response) => {
+          resolve({
+            instance: `${instance.host}:${instance.port}`,
+            status: response.statusCode,
+            success: response.statusCode === 200
+          });
+        });
+        
+        req.on('error', (error) => {
+          resolve({
+            instance: `${instance.host}:${instance.port}`,
+            error: error.message,
+            success: false
+          });
+        });
+        
+        req.end();
+      });
+    });
+    
+    results.varnish = await Promise.all(varnishPromises);
+    
+    // Purge Redis cache (assuming widgets key for this path)
+    if (path === 'api/widgets') {
+      const redisResult = await redisClient.del('widgets');
+      results.redis = {
+        key: 'widgets',
+        keysDeleted: redisResult,
+        success: redisResult > 0
+      };
+    }
+    
+    res.json({
+      message: `Purged ${path} from all cache layers`,
+      results,
+      server: SERVER_ID
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Purge all Varnish instances endpoint
