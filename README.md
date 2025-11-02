@@ -8,6 +8,8 @@ Starting with basic HTTP cache headers and building up to coordinated multi-laye
 
 **Current Architecture:** HAProxy → 2 Varnish instances → 3 Node.js apps → Redis → External APIs
 
+**Documentation:** See [docs/README.md](./docs/README.md) for detailed implementation guides and configuration examples.
+
 ## Learning Objectives
 
 * ✅ Understand the caching hierarchy: browser → CDN → reverse proxy → application cache
@@ -79,18 +81,6 @@ curl -X POST http://localhost:8082/purge-everything/api/widgets
 * **Distributed Cache Invalidation**: Coordinated purging across all cache layers
 * **Production-Ready Patterns**: Real-world caching challenges and solutions
 * **Performance Optimization**: 200ms external calls → 5ms Redis lookups
-
-## Documentation
-
-See [docs/README.md](./docs/README.md) for comprehensive guides covering:
-- Docker Compose fundamentals
-- CDN cache behavior analysis (theoretical)
-- Varnish setup and configuration
-- Load balancing strategies
-- Cache purging techniques
-- Redis application caching patterns
-
-*Complete documentation covers all implemented components and real-world caching challenges.*
 
 ## Success Metrics Achieved
 
